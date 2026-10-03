@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V12 AI Chat Interface</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==================== RESET & ROOT ==================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --sidebar-bg: #ffffff;
+      --text-primary: #1a1a1a;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+      --blue-start: #00c4cc;
+      --blue-end: #7c3aed;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    /* ==================== BASE STYLES ==================== */
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+      max-width: 1920px;
+      margin: 0 auto;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* ==================== SIDEBAR ==================== */
+    .sidebar {
+      width: 280px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      z-index: 100;
+    }
+
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+      position: absolute;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: -0.5px;
+      box-shadow: 0 4px 12px rgba(0, 196, 204, 0.3);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+      transform: rotate(45deg);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    .sidebar-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+    }
+
+    .new-chat-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .sidebar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: white;
+      border-color: var(--blue-start);
+      transform: translateX(4px);
+    }
+
+    .chat-history {
+      margin-top: 30px;
+    }
+
+    .history-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .history-item {
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-item:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    /* ==================== MAIN CONTENT ==================== */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+      position: relative;
+    }
+
+    .chat-header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-primary);
+      position: relative;
+    }
+
+    .menu-toggle {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+    }
+
+    .menu-toggle:hover {
+      background: var(--border-color);
+      transform: scale(1.05);
+    }
+
+    .chat-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ==================== MESSAGES AREA ==================== */
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .message {
+      display: flex;
+      gap: 16px;
+      animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      align-items: flex-start;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+
+    .message.user .message-avatar {
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      color: white;
+    }
+
+    .message.ai .message-avatar {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .message-content {
+      max-width: 70%;
+      padding: 16px 20px;
+      border-radius: 16px;
+      line-height: 1.6;
+      font-size: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .message.user .message-content {
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      color: white;
+      border-bottom-right-radius: 4px;
+      align-items: flex-end;
+    }
+
+    .message.ai .message-content {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+      align-items: flex-start;
+    }
+
+    .message-text {
+      width: 100%;
+    }
+
+    .message-image {
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      object-fit: cover;
+      display: block;
+    }
+    
+    .circle-loader {
+        width: 24px;
+        height: 24px;
+        border: 3px solid var(--border-color);
+        border-top-color: var(--blue-start);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* ==================== EMPTY STATE ==================== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 24px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.5px;
+      box-shadow: 0 8px 24px rgba(0, 196, 204, 0.3);
+    }
+
+    .empty-title {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .empty-subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 500px;
+      line-height: 1.6;
+    }
+
+    .suggestion-chips {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .chip {
+      padding: 10px 20px;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      border-color: var(--blue-start);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ==================== INPUT AREA ==================== */
+    .input-container {
+      padding: 24px 32px 32px;
+      background: var(--bg-primary);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .input-field {
+      flex: 1;
+      min-height: 52px;
+      max-height: 120px;
+      padding: 14px 20px;
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      resize: none;
+      transition: all 0.2s ease;
+      overflow-y: auto;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--blue-start);
+      box-shadow: 0 0 0 3px rgba(0, 196, 204, 0.1);
+    }
+
+    .input-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 52px;
+      height: 52px;
+      border: none;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transition: all 0.2s ease;
+      color: var(--text-primary);
+    }
+
+    .icon-btn:hover {
+      background: var(--border-color);
+      transform: scale(1.05);
+    }
+
+    .send-btn {
+      width: 52px;
+      height: 52px;
+      border: none;
+      background: linear-gradient(135deg, var(--blue-start), var(--blue-end));
+      color: white;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .send-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .send-btn:active {
+      transform: translateY(0);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ==================== SCROLLBAR ==================== */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+      }
+
+      .chat-title {
+        position: static;
+        transform: none;
+      }
+
+      .message-content {
+        max-width: 85%;
+      }
+
+      .input-wrapper {
+        flex-direction: column;
+      }
+
+      .input-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      .messages-container {
+        padding: 20px 16px;
+      }
+
+      .input-container {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">V12</div>
+                <span>AI Assistant</span>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <button class="new-chat-btn" id="newChatBtn">
+                <span style="font-size: 20px;">+</span> New Chat
+            </button>
+            <div class="sidebar-actions">
+                <button class="action-btn" id="uploadBtn">
+                    <span></span> Upload Image
+                </button>
+                <button class="action-btn">
+                    <span></span> Search History
+                </button>
+                <button class="action-btn">
+                    <span></span> Settings
+                </button>
+            </div>
+            <div class="chat-history">
+                <div class="history-title">Recent Chats</div>
+                <div class="history-item">Getting started with AI</div>
+                <div class="history-item">Code debugging help</div>
+                <div class="history-item">Creative writing ideas</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <header class="chat-header">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <div class="chat-title">AI Chat</div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Online</span>
+            </div>
+        </header>
+
+        <div class="messages-container" id="messagesContainer">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">V12</div>
+                <h1 class="empty-title">Welcome to V12 AI Assistant</h1>
+                <p class="empty-subtitle">Start a conversation or upload an image to begin the analysis.</p>
+                <div class="suggestion-chips">
+                    <div class="chip" onclick="sendSuggestion('Tell me a creative story')">Tell me a story</div>
+                    <div class="chip" onclick="sendSuggestion('Help me write code')">Help with code</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea class="input-field" id="messageInput" placeholder="Type your message or upload an image..." rows="1"></textarea>
+                <div class="input-actions">
+                    <button class="icon-btn" id="imageBtn">✚</button>
+                    <button class="send-btn" id="sendBtn">➤</button>
+                </div>
+            </div>
+        </div>
+    </main>
+  </div>
+
+  <input type="file" id="fileInput" accept="image/*" class="hidden">
+
+  <script>
+    // ==================== DOM ELEMENTS ====================
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('menuToggle');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const imageBtn = document.getElementById('imageBtn');
+    const fileInput = document.getElementById('fileInput');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const emptyState = document.getElementById('emptyState');
+    let messageCount = 0;
+
+    // ==================== SIDEBAR & TEXTAREA ====================
+    menuToggle.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // ==================== MESSAGE & INDICATOR FUNCTIONS ====================
+    function addMessage(type, text, imageUrl = null) {
+      if (messageCount === 0) emptyState.style.display = 'none';
+      messageCount++;
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+      const avatar = document.createElement('div');
+      avatar.className = 'message-avatar';
+      avatar.textContent = type === 'user' ? 'U' : 'AI';
+      const content = document.createElement('div');
+      content.className = 'message-content';
+      if (text) {
+        const textSpan = document.createElement('span');
+        textSpan.className = 'message-text';
+        textSpan.innerHTML = text.replace(/\n/g, '<br>');
+        content.appendChild(textSpan);
+      }
+      if (imageUrl) {
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'message-image';
+        img.alt = 'Uploaded image';
+        content.appendChild(img);
+      }
+      messageDiv.appendChild(avatar);
+      messageDiv.appendChild(content);
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function showLoadingIndicator() {
+        if (messageCount === 0) emptyState.style.display = 'none';
+        const indicatorHTML = `<div class="message ai" id="loadingIndicator"><div class="message-avatar">AI</div><div class="message-content"><div class="circle-loader"></div></div></div>`;
+        messagesContainer.insertAdjacentHTML('beforeend', indicatorHTML);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function hideLoadingIndicator() {
+        const indicator = document.getElementById('loadingIndicator');
+        if (indicator) indicator.remove();
+    }
+
+    // ==================== API COMMUNICATION ====================
+    function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+        addMessage('user', text);
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        sendBtn.disabled = true;
+        showLoadingIndicator();
+        fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: text }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoadingIndicator();
+            addMessage('ai', data.response || `Error: ${data.error}`);
+        })
+        .catch(error => {
+            hideLoadingIndicator();
+            console.error('Fetch Error:', error);
+            addMessage('ai', 'Sorry, an error occurred. Please try again.');
+        })
+        .finally(() => {
+            sendBtn.disabled = false;
+            messageInput.focus();
+        });
+    }
+
+    function sendSuggestion(text) {
+        messageInput.value = text;
+        sendMessage();
+    }
+
+    // ==================== EVENT LISTENERS ====================
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    imageBtn.addEventListener('click', () => fileInput.click());
+    uploadBtn.addEventListener('click', () => fileInput.click());
+
+    // --- THIS IS THE UPDATED IMAGE UPLOAD HANDLER ---
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            // 1. Display the user's image in the chat
+            addMessage('user', '', event.target.result);
+            showLoadingIndicator();
+
+            // 2. Prepare the image file for upload
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // 3. Send the image to the backend for analysis
+            fetch('/upload', {
+                method: 'POST',
+                body: formData, // No 'Content-Type' header needed, browser sets it
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoadingIndicator();
+                addMessage('ai', data.response || `Error: ${data.error}`);
+            })
+            .catch(error => {
+                hideLoadingIndicator();
+                console.error('Upload Error:', error);
+                addMessage('ai', 'Sorry, there was an error uploading or analyzing the image.');
+            });
+        };
+        reader.readAsDataURL(file);
+        fileInput.value = ''; // Reset for next upload
+    });
+
+    newChatBtn.addEventListener('click', () => {
+        messagesContainer.innerHTML = '';
+        messagesContainer.appendChild(emptyState);
+        emptyState.style.display = 'flex';
+        messageCount = 0;
+    });
+
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !menuToggle.contains(e.target) && !sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+        }
+    });
+  </script>
+</body>
+</html>

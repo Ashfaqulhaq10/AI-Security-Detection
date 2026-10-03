@@ -1,0 +1,64 @@
+Step 1: Receive the image from the user.
+
+Step 2: Apply "pytesseract OCR" to extract text from the image.
+
+Step 3: Store the extracted text in SQLite3 database file "user.dB".
+
+Step 4: Match the extracted text against SQLite3 database file "V12_datasets.db"
+
+Layer 1: Full-Text Search
+
+Step 5: Perform initial matching using FTS5 (Full-Text Search) method.
+
+Step 6: Search using keyword matching and phrase matching.
+
+Step 7:   If flagged as malicious:     
+			Do not send to LLM.
+	  Else:     
+			Proceed to Layer 2.
+
+Layer 2: Semantic Matching
+
+Step 8: Match both databases using either:
+   
+		a) FAISS (Approximate Nearest Neighbor) method ( or ) 
+		
+		b) Transformer-based fuzzy matching method.
+
+Step 9:  If flagged as malicious:     
+		       Do not send to LLM.
+	  Else:     
+		       Proceed to Layer 3.
+
+Layer 3: Public Dataset Validation
+
+Step 10: Match extracted text with public datasets using 
+
+		a) Google AI API key request method.
+
+Step 11:   If flagged as malicious: 
+
+			 Do not send to LLM.
+
+	   Else:
+			 Proceed to Layer 4.
+
+Layer 4: Steganography Detection
+
+Step 12: Check for steganographed variables using pystegano module.by decrypting it if decription results come positive then don send to the llm
+
+Step 13: Apply LSB (Least Significant Bit) method to extract steganographed variables.
+
+Step 14:   If steganographed variables are found: 
+
+                         Flag as malicious and do not send to LLM.  
+           Else:    
+			 Proceed to Step 15.
+
+Step 15: Flag the input as safe and send it to the LLM.
+
+
+
+
+
+.
